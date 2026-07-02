@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+*.egg-info/
+dist/
+build/
+.env
+venv/
+.venv/
+._*
+.DS_Store
+Clean State*.md
+Run all tasks*.md
