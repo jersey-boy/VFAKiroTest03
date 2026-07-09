@@ -47,27 +47,39 @@ class YourInformationPage(BasePage):
     def fill_address_abroad(self, abroad_address: AbroadAddress) -> None:
         """Fill the abroad address section: country typeahead, address, city, postal code.
 
-        Uses Canada as the country (consistent field structure with City, State, Postal Code).
+        The VFA site renders different address field layouts depending on the country:
+          - Canada: Address1, Address2, City, State/Province, Postal Code (id_abrAdr_Z)
+          - United Kingdom: Address1, Address2, Address3, City, Postal Code (id_abrAdr_Z)
+          - Germany: Address1, Address2, Postal Code, City (both use id_abrAdr_C!)
+
+        We use placeholder-based selectors scoped within the #id_abrAdr container
+        to handle duplicate IDs and varying field layouts.
         """
         # Fill country typeahead
         country_input = self.page.locator('input[placeholder*="type to find your country"]')
         country_input.fill(abroad_address.country)
-        # Wait for Vue to re-render the address fields
-        self.page.wait_for_timeout(500)
+        # Wait for Vue to re-render the address fields based on country selection
+        self.page.wait_for_timeout(1000)
 
-        # Fill address fields using fill()
-        self.page.locator("#id_abrAdr_A").fill(abroad_address.address_line1)
-        self.page.locator("#id_abrAdr_C").fill(abroad_address.city)
+        # Scope all field lookups within the abroad address container
+        abroad_section = self.page.locator("#id_abrAdr")
 
-        # State/province — only fill if present (depends on country)
-        state_field = self.page.locator("#id_abrAdr_S")
+        # Address Line 1 — always present
+        abroad_section.locator('input[placeholder="Street Address 1"]').fill(abroad_address.address_line1)
+
+        # City — use placeholder to disambiguate from duplicate id_abrAdr_C elements
+        abroad_section.locator('input[placeholder="City"]').fill(abroad_address.city)
+
+        # State/province — only fill if visible (Canada has it, UK/Germany don't)
+        state_field = abroad_section.locator("#id_abrAdr_S")
         if state_field.count() > 0 and state_field.is_visible():
             state_field.fill(abroad_address.state_province)
 
-        # Postal code
-        zip_field = self.page.locator("#id_abrAdr_Z")
-        if zip_field.count() > 0 and zip_field.is_visible():
-            zip_field.fill(abroad_address.zip_code)
+        # Postal code — use placeholder since Germany uses id_abrAdr_C for postal code
+        # while Canada/UK use id_abrAdr_Z
+        postal_field = abroad_section.locator('input[placeholder="Postal Code"]')
+        if postal_field.count() > 0 and postal_field.is_visible():
+            postal_field.fill(abroad_address.zip_code)
 
         self.page.wait_for_timeout(300)
 

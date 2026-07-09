@@ -19,7 +19,16 @@ class ReviewPage(BasePage):
         self.page.wait_for_timeout(500)
 
     def click_next(self) -> None:
-        """Click Next to advance to the Sign & Submit flow."""
-        self.page.locator("#id_sign_submit_nextsteps_next_01").click()
-        self.page.wait_for_timeout(1000)
-        self.page.wait_for_timeout(2000)  # Wait for Sign & Submit sub-page to render
+        """Click Next to advance to the Sign & Submit flow.
+
+        The review page has a Next button that navigates within the same URL
+        (/request/sign-submit-nextsteps). We need to wait for the button to
+        appear first since the page may still be rendering.
+        """
+        next_btn = self.page.locator("#id_sign_submit_nextsteps_next_01")
+        next_btn.wait_for(state="visible", timeout=self.PAGE_TRANSITION_TIMEOUT)
+        next_btn.scroll_into_view_if_needed()
+        self.page.wait_for_timeout(500)
+        next_btn.click()
+        # Wait for the signature sub-page to fully render
+        self.page.wait_for_timeout(2000)

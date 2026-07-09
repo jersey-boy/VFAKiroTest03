@@ -74,9 +74,14 @@ TITLE_CHOICES = ["Miss", "Ms.", "Mrs.", "Mr."]
 SUFFIX_CHOICES = ["Sr.", "Jr.", "II", "III", "IV"]
 
 # Countries known to work with the VFA site's country typeahead component
-# Using only countries with a standard address structure (City + State + Postal Code)
+# Each country has a different address field layout:
+#   Canada: Address1, Address2, City, State/Province, Postal Code
+#   United Kingdom: Address1, Address2, Address3, City, Postal Code (no State)
+#   Germany: Address1, Address2, Postal Code, City (no State, different order)
 ABROAD_COUNTRY_CHOICES = [
     "Canada",
+    "United Kingdom",
+    "Germany",
 ]
 
 
@@ -142,15 +147,38 @@ class DataGenerator:
         )
 
     def generate_abroad_address(self) -> AbroadAddress:
-        """Generate an address abroad with a country that is not United States."""
+        """Generate an address abroad with a country that is not United States.
+
+        Each country uses realistic address data appropriate for that country's
+        postal format. The state_province field is only used by countries that
+        show the State/Province input (e.g., Canada).
+        """
         country = random.choice(ABROAD_COUNTRY_CHOICES)
-        return AbroadAddress(
-            country=country,
-            address_line1=self.fake.building_number() + " " + self.fake.street_name(),
-            city="Toronto",
-            state_province="ON",
-            zip_code="M5V2T6",
-        )
+
+        if country == "Canada":
+            return AbroadAddress(
+                country=country,
+                address_line1=self.fake.building_number() + " " + self.fake.street_name(),
+                city="Toronto",
+                state_province="ON",
+                zip_code="M5V 2T6",
+            )
+        elif country == "United Kingdom":
+            return AbroadAddress(
+                country=country,
+                address_line1=self.fake.building_number() + " " + self.fake.street_name(),
+                city="London",
+                state_province="",  # UK doesn't show state field
+                zip_code="SW1A 1AA",
+            )
+        else:  # Germany
+            return AbroadAddress(
+                country=country,
+                address_line1=self.fake.street_name() + " " + self.fake.building_number(),
+                city="Berlin",
+                state_province="",  # Germany doesn't show state field
+                zip_code="10115",
+            )
 
     def generate_ssn_last4(self) -> str:
         """Generate exactly 4 random digits for SSN last-4."""
