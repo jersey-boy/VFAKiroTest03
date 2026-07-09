@@ -10,5 +10,4 @@ venv/
 .venv/
 ._*
 .DS_Store
-Clean State*.md
-Run all tasks*.md
+
