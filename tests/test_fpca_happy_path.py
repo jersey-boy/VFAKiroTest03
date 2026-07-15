@@ -41,8 +41,8 @@ def test_fpca_happy_path(page) -> None:
     voting_info.fill_us_address(data.us_address)
     voting_info.select_voter_registration()
     voting_info.select_voter_category()
-    voting_info.select_jurisdiction()
     voting_info.select_ballot_delivery()
+    voting_info.select_jurisdiction()
     voting_info.click_next()
 
     # Step 3: ID and Contact Information
