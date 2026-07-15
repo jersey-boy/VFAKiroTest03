@@ -168,3 +168,37 @@ Implement a single end-to-end Playwright happy-path test for the FPCA ballot req
   ]
 }
 ```
+
+
+---
+
+## Database Verification Tasks
+
+- [ ] 12. Add database verification dependencies
+  - [ ] 12.1 Add `psycopg2-binary` and `python-dotenv` to `requirements.txt`
+    - _Requirements: 12.2, 12.7_
+
+- [ ] 13. Implement first name uniqueness
+  - [ ] 13.1 Modify `DataGenerator.generate_name()` to append a 4-character random alphanumeric suffix to the first name
+    - _Requirements: 13.1, 13.2, 13.3_
+
+- [ ] 14. Implement database verification module
+  - [ ] 14.1 Create `data/db_verify.py` with `DatabaseVerifier` class
+    - Implement `__init__()` to load credentials from `databaseconnect.env` using `python-dotenv`
+    - Implement `connect()` to establish PostgreSQL connection via `psycopg2`
+    - Implement `find_record_by_firstname(firstname, timeout=30)` with polling/retry
+    - Implement `verify_fields(record, expected_data)` to assert firstname, lastname, email, dob match
+    - Implement `close()` to close the database connection
+    - _Requirements: 12.2, 12.3, 12.4, 12.5, 12.6, 12.7_
+
+- [ ] 15. Integrate DB verification into the E2E test
+  - [ ] 15.1 Update `conftest.py` to load `databaseconnect.env` at session start
+    - _Requirements: 12.7_
+
+  - [ ] 15.2 Update `test_fpca_happy_path.py` to call `DatabaseVerifier` after confirmation page verification
+    - Connect to DB, find record by unique firstname, verify fields, close connection
+    - _Requirements: 12.2, 12.3, 12.4, 12.5, 12.6_
+
+- [ ] 16. Checkpoint — Verify DB integration compiles and test passes
+  - Ensure code compiles cleanly and test runs end-to-end including DB verification
+

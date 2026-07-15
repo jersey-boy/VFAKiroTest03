@@ -377,3 +377,90 @@ faker>=20.0.0
 ```
 
 Note: After installing, run `playwright install chromium` to download the browser binary.
+
+
+---
+
+## Database Verification Component
+
+### Overview
+
+After the E2E test confirms successful form submission via the confirmation page, a database verification step queries the PostgreSQL backend to confirm the submitted data was persisted correctly. A 4-character random suffix appended to the first name ensures each test run produces a unique, searchable record.
+
+### Architecture Addition
+
+```mermaid
+graph TD
+    B[test_fpca_happy_path.py] --> H[DB Verifier]
+    H --> I[PostgreSQL on AWS RDS]
+    H --> J[databaseconnect.env]
+```
+
+### 6. DatabaseVerifier — DB Verification Module
+
+```python
+class DatabaseVerifier:
+    def __init__(self, env_path: str = "databaseconnect.env"): ...
+    def connect(self) -> None: ...
+    def find_record_by_firstname(self, firstname: str, timeout: int = 30) -> dict | None: ...
+    def verify_fields(self, record: dict, expected: ApplicantData) -> None: ...
+    def close(self) -> None: ...
+```
+
+**Location:** `data/db_verify.py`
+
+**Responsibilities:**
+- Load DB credentials from `databaseconnect.env` using `python-dotenv`
+- Connect to PostgreSQL via `psycopg2`
+- Query `Vfa_fpca_form` table by firstname (with unique suffix) with polling/retry up to 30 seconds
+- Assert that `firstname`, `lastname`, `email`, and `dob` match expected values
+- Close connection on completion
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant T as Test
+    participant CP as ConfirmationPage
+    participant DB as DatabaseVerifier
+    participant PG as PostgreSQL
+
+    T->>CP: verify_success()
+    T->>DB: connect()
+    T->>DB: find_record_by_firstname(data.name.first_name)
+    DB->>PG: SELECT * FROM Vfa_fpca_form WHERE firstname = ?
+    PG-->>DB: record
+    T->>DB: verify_fields(record, data)
+    DB-->>T: assertion pass/fail
+    T->>DB: close()
+```
+
+### First Name Uniqueness Strategy
+
+The `DataGenerator.generate_name()` method appends a 4-character random alphanumeric suffix to the first name:
+
+```python
+import string
+suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+first_name = self.fake.first_name() + suffix
+```
+
+This ensures each test run writes a unique firstname to the database, allowing the verification query to unambiguously locate the correct record without timestamp-based filtering.
+
+### Dependencies Addition
+
+```
+# requirements.txt (additions)
+psycopg2-binary>=2.9.9
+python-dotenv>=1.0.0
+```
+
+### Error Handling
+
+| Scenario | Handling | User-Visible Behavior |
+|---|---|---|
+| DB connection failure | psycopg2.OperationalError caught | Test fails with "Cannot connect to database: {error}" |
+| Record not found within 30s | Polling loop timeout | Test fails with "Record not found in database for firstname '{name}'" |
+| Field mismatch | AssertionError | Test fails with "DB field '{field}' expected '{expected}' got '{actual}'" |
+| Missing .env file | FileNotFoundError | Test fails with "databaseconnect.env not found" |
+

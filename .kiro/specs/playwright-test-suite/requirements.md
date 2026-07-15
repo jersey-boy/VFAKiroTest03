@@ -180,3 +180,33 @@ This document defines the requirements for a single end-to-end Playwright "happy
 2. WHEN waiting for a page transition, THE Test_Suite SHALL use Playwright's built-in auto-waiting and explicit wait mechanisms with the Page_Transition_Timeout rather than fixed sleep calls.
 3. IF a page transition does not complete within the Page_Transition_Timeout, THEN THE Test_Suite SHALL fail the test with an error message identifying which step transition timed out.
 4. WHEN a new page loads after transition, THE Test_Suite SHALL rely on Playwright's auto-waiting for elements to become actionable before entering data.
+
+
+---
+
+### Requirement 12: Database Verification After Submission
+
+**User Story:** As a QA engineer, I want the test to verify that form data was written to the backend PostgreSQL database after submission, so that I can confirm the full data pipeline works end-to-end.
+
+#### Acceptance Criteria
+
+1. THE Data_Generator SHALL append a random 4-character alphanumeric string to the generated first name for each test run, creating a unique identifier that can be used to locate the record in the database.
+2. WHEN the form submission completes and the confirmation page is verified, THE Test_Suite SHALL connect to the PostgreSQL database using credentials loaded from the `databaseconnect.env` file.
+3. WHEN connected to the database, THE Test_Suite SHALL query the `Vfa_fpca_form` table to find the record matching the unique first name (with appended suffix) submitted during the test.
+4. WHEN the record is found, THE Test_Suite SHALL verify that the following fields match the data entered during the test: firstname, lastname, email, and dob.
+5. IF the record is not found in the database within 30 seconds of submission, THEN THE Test_Suite SHALL fail the test with a descriptive error indicating the record was not written.
+6. WHEN the database verification completes (pass or fail), THE Test_Suite SHALL close the database connection.
+7. THE Test_Suite SHALL load database connection credentials from environment variables defined in `databaseconnect.env`, never hardcoding credentials in source code.
+
+---
+
+### Requirement 13: Test Data Uniqueness
+
+**User Story:** As a QA engineer, I want each test run to produce a uniquely identifiable first name, so that database verification can unambiguously locate the correct record.
+
+#### Acceptance Criteria
+
+1. THE Data_Generator SHALL generate a 4-character random string consisting of lowercase letters and digits for each test run.
+2. THE Data_Generator SHALL append this random string to the end of the generated first name (e.g., "John" becomes "Johnx7k2").
+3. THE random suffix SHALL be stored as part of the ApplicantData so it is available for database lookup after submission.
+

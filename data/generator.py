@@ -1,6 +1,7 @@
 """Data models and generator for FPCA form test data."""
 
 import random
+import string
 from dataclasses import dataclass
 from typing import Optional
 
@@ -93,9 +94,10 @@ class DataGenerator:
 
     def generate_name(self) -> NameData:
         """Generate a random applicant name with title and suffix."""
+        suffix_id = ''.join(random.choices(string.ascii_lowercase, k=4))
         return NameData(
             title=random.choice(TITLE_CHOICES),
-            first_name=self.fake.first_name(),
+            first_name=self.fake.first_name() + suffix_id,
             middle_name=self.fake.first_name(),
             last_name=self.fake.last_name(),
             suffix=random.choice(SUFFIX_CHOICES),

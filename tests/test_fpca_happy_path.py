@@ -3,6 +3,7 @@
 import pytest
 from playwright.sync_api import Page
 
+from data.db_verify import DatabaseVerifier
 from data.generator import DataGenerator
 from pages.confirmation_page import ConfirmationPage
 from pages.home_page import HomePage
@@ -68,3 +69,15 @@ def test_fpca_happy_path(page) -> None:
     # Verify successful completion
     confirmation = ConfirmationPage(page)
     confirmation.verify_success()
+
+    # Step 6: Database Verification
+    db = DatabaseVerifier()
+    try:
+        db.connect()
+        record = db.find_record_by_firstname(data.name.first_name, timeout=30)
+        assert record is not None, (
+            f"Record not found in database for firstname '{data.name.first_name}'"
+        )
+        db.verify_fields(record, data)
+    finally:
+        db.close()

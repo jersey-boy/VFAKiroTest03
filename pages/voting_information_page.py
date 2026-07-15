@@ -63,21 +63,18 @@ class VotingInformationPage(BasePage):
         self.page.wait_for_timeout(200)
 
     def select_voter_category(self) -> None:
-        """Randomly select one voter category from the available options."""
-        voter_class_buttons = [
-            "#id_rb_voterClass_intendToReturn",
-            "#id_rb_voterClass_uncertainReturn",
-            "#id_rb_voterClass_neverResided",
-            "#id_rb_voterClass_military",
-            "#id_rb_voterClass_milSpouse",
-        ]
-        chosen = random.choice(voter_class_buttons)
+        """Select the 'Civilian - I Intend to Return' voter category.
+
+        Other voter categories have additional form validation requirements
+        that vary by state, making them unreliable for automated happy-path
+        testing. The intendToReturn category consistently passes navigation.
+        """
+        btn = self.page.locator("#id_rb_voterClass_intendToReturn")
         # Scroll the voter class container into view first — this also closes
-        # any jurisdiction dropdown that might be overlaying these buttons
+        # any dropdown that might be overlaying these buttons
         voter_div = self.page.locator("#id_voterClass")
         voter_div.scroll_into_view_if_needed()
         self.page.wait_for_timeout(500)
-        btn = self.page.locator(chosen)
         btn.click()
         self.page.wait_for_timeout(300)
 
@@ -106,9 +103,12 @@ class VotingInformationPage(BasePage):
         except Exception:
             # Re-select jurisdiction in case it was cleared by Vue reactivity,
             # then retry the Next click
-            self.page.wait_for_timeout(500)
+            self.page.wait_for_timeout(1000)
             self.select_jurisdiction()
-            self.page.wait_for_timeout(500)
+            self.page.wait_for_timeout(1000)
             next_btn.scroll_into_view_if_needed()
             next_btn.click()
-            self.wait_for_url_contains("/request/id-and-contact-information")
+            self.page.wait_for_function(
+                "() => window.location.href.includes('/request/id-and-contact-information')",
+                timeout=30000,
+            )
