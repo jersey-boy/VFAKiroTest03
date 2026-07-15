@@ -55,7 +55,7 @@ class VotingInformationPage(BasePage):
                     self.page.wait_for_timeout(300)
             # Close any remaining dropdown overlay
             self.page.keyboard.press("Escape")
-            self.page.wait_for_timeout(500)
+            self.page.wait_for_timeout(1000)
 
     def select_voter_registration(self) -> None:
         """Select 'Yes' for the voter registration question."""
@@ -91,9 +91,8 @@ class VotingInformationPage(BasePage):
     def click_next(self) -> None:
         """Click the Next button and verify navigation to the ID and Contact step.
 
-        Uses the specific Step 2 Next button ID for reliability, and retries
-        if the page doesn't navigate (form validation may block the first click
-        if Vue's reactive state hasn't fully committed jurisdiction selection).
+        Uses the specific Step 2 Next button ID. Retries with a second click
+        if the first attempt doesn't navigate (Vue may need an extra event cycle).
         """
         next_btn = self.page.locator("#id_pages_request_stage_next_02")
         next_btn.scroll_into_view_if_needed()
@@ -101,11 +100,8 @@ class VotingInformationPage(BasePage):
         try:
             self.wait_for_url_contains("/request/id-and-contact-information")
         except Exception:
-            # Re-select jurisdiction in case it was cleared by Vue reactivity,
-            # then retry the Next click
-            self.page.wait_for_timeout(1000)
-            self.select_jurisdiction()
-            self.page.wait_for_timeout(1000)
+            # Second attempt — sometimes the first click is absorbed by Vue
+            self.page.wait_for_timeout(2000)
             next_btn.scroll_into_view_if_needed()
             next_btn.click()
             self.page.wait_for_function(
