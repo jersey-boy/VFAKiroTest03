@@ -30,10 +30,8 @@ class VotingInformationPage(BasePage):
     def select_jurisdiction(self) -> None:
         """Select the first available voting jurisdiction from the dropdown.
 
-        The jurisdiction field is a typeahead input. We click to open it,
-        click the first real jurisdiction entry, then verify the value stuck.
-        If it didn't (Vue race condition), we directly dispatch an input event
-        with the jurisdiction text to force Vue's v-model to commit.
+        Opens the dropdown, clicks the first real jurisdiction <li> using
+        Playwright locators, verifies the value committed. If not, retries.
         """
         jurisdiction = self.page.locator("#id_jurisdiction")
         if jurisdiction.count() == 0 or not jurisdiction.is_visible():
@@ -42,50 +40,27 @@ class VotingInformationPage(BasePage):
         for attempt in range(3):
             # Click to open dropdown
             jurisdiction.click()
-            self.page.wait_for_timeout(1000)
+            self.page.wait_for_timeout(1500)
 
-            # Get the first real jurisdiction text and click it
+            # Click the first real jurisdiction entry
             county_items = self.page.locator('li:visible').filter(has_text="Election")
-            selected_text = ""
             if county_items.count() > 0:
-                selected_text = county_items.first.text_content().strip()
                 county_items.first.click()
-                self.page.wait_for_timeout(500)
             else:
                 all_items = self.page.locator('li:visible')
                 if all_items.count() > 1:
-                    selected_text = all_items.nth(1).text_content().strip()
                     all_items.nth(1).click()
-                    self.page.wait_for_timeout(500)
+                else:
+                    jurisdiction.press("Escape")
+
+            self.page.wait_for_timeout(1000)
 
             # Verify the input value was populated
             value = jurisdiction.input_value()
             if value and value.strip():
-                # Close dropdown
-                self.page.keyboard.press("Escape")
-                self.page.wait_for_timeout(500)
-                return  # Success
+                return  # Success — dropdown auto-closes on selection
 
-            # Value is empty — force it via native input events
-            if selected_text:
-                self.page.keyboard.press("Escape")
-                self.page.wait_for_timeout(300)
-                jurisdiction.fill("")
-                jurisdiction.type(selected_text[:30], delay=50)
-                self.page.wait_for_timeout(1000)
-                # Click the first matching dropdown item again
-                match_items = self.page.locator('li:visible').filter(has_text="Election")
-                if match_items.count() > 0:
-                    match_items.first.click()
-                    self.page.wait_for_timeout(500)
-
-                value = jurisdiction.input_value()
-                if value and value.strip():
-                    self.page.keyboard.press("Escape")
-                    self.page.wait_for_timeout(500)
-                    return
-
-            # Close and retry
+            # Value is empty — wait and retry
             self.page.keyboard.press("Escape")
             self.page.wait_for_timeout(1000)
 
