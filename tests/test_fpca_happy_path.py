@@ -4,6 +4,7 @@ import pytest
 from playwright.sync_api import Page
 
 from data.db_verify import DatabaseVerifier
+from data.email_verify import EmailVerifier
 from data.generator import DataGenerator
 from pages.confirmation_page import ConfirmationPage
 from pages.home_page import HomePage
@@ -18,6 +19,12 @@ from pages.your_information_page import YourInformationPage
 def test_fpca_happy_path(page) -> None:
     """Complete FPCA form submission with randomly generated data."""
     data = DataGenerator().generate_applicant_data()
+
+    # Create a Mailslurp inbox for this test run
+    email_verifier = EmailVerifier()
+    mailslurp_email = email_verifier.create_inbox()
+    # Override the generated email with the Mailslurp inbox address
+    data.email = mailslurp_email
 
     # Navigate to homepage and dismiss cookie banner
     home = HomePage(page)
@@ -83,3 +90,13 @@ def test_fpca_happy_path(page) -> None:
         db.verify_fields(record, data)
     finally:
         db.close()
+
+    # Step 7: Email Delivery Verification
+    try:
+        result = email_verifier.verify_email_received(
+            expected_name=data.name.first_name
+        )
+        print(f"Email received: subject='{result['subject']}', "
+              f"body_length={result['body_length']}")
+    finally:
+        email_verifier.close()

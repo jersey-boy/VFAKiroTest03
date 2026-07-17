@@ -5,3 +5,4 @@ hypothesis==6.92.0
 faker==20.0.0
 psycopg2-binary==2.9.9
 python-dotenv==1.0.1
+mailslurp-client==15.19.22
