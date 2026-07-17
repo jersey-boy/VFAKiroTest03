@@ -43,6 +43,8 @@ def test_fpca_happy_path(page) -> None:
     voting_info.select_voter_category()
     voting_info.select_ballot_delivery()
     voting_info.select_jurisdiction()
+    # Re-assert voter registration after jurisdiction (dropdown can reset it)
+    voting_info.select_voter_registration()
     voting_info.click_next()
 
     # Step 3: ID and Contact Information

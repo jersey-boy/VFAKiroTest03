@@ -44,16 +44,27 @@ class VotingInformationPage(BasePage):
             jurisdiction.click()
             self.page.wait_for_timeout(1500)
 
-            # Click the first real jurisdiction entry
-            county_items = self.page.locator('li:visible').filter(has_text="Election")
-            if county_items.count() > 0:
-                county_items.first.click()
-            else:
-                all_items = self.page.locator('li:visible')
-                if all_items.count() > 1:
-                    all_items.nth(1).click()
-                else:
-                    jurisdiction.press("Escape")
+            # Use mousedown/mouseup on the first real jurisdiction entry
+            # Some Vue components listen to mousedown rather than click
+            committed = self.page.evaluate("""() => {
+                const items = document.querySelectorAll('li');
+                for (const item of items) {
+                    if (item.offsetParent !== null && item.textContent.includes('Election')) {
+                        item.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                        item.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                        item.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                        return true;
+                    }
+                }
+                const visible = Array.from(items).filter(li => li.offsetParent !== null && li.textContent.trim());
+                if (visible.length > 1) {
+                    visible[1].dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                    visible[1].dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                    visible[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                    return true;
+                }
+                return false;
+            }""")
 
             self.page.wait_for_timeout(1000)
 
