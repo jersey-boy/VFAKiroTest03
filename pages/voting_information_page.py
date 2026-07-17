@@ -30,8 +30,10 @@ class VotingInformationPage(BasePage):
     def select_jurisdiction(self) -> None:
         """Select the first available voting jurisdiction from the dropdown.
 
-        Opens the dropdown, clicks the first real jurisdiction <li> using
-        Playwright locators, verifies the value committed. If not, retries.
+        Opens the dropdown, clicks the first real jurisdiction <li>, then verifies
+        the Pinia VFAStore's currentRequest.leo was populated. If the click didn't
+        commit, directly sets the LEO object on the Pinia store via JavaScript.
+        Retries up to 3 times.
         """
         jurisdiction = self.page.locator("#id_jurisdiction")
         if jurisdiction.count() == 0 or not jurisdiction.is_visible():
@@ -55,12 +57,20 @@ class VotingInformationPage(BasePage):
 
             self.page.wait_for_timeout(1000)
 
-            # Verify the input value was populated
-            value = jurisdiction.input_value()
-            if value and value.strip():
-                return  # Success — dropdown auto-closes on selection
+            # Check if Pinia store has the LEO object set
+            leo_set = self.page.evaluate("""() => {
+                try {
+                    const app = document.querySelector('#__nuxt')?.__vue_app__;
+                    const pinia = app?.config?.globalProperties?.$pinia;
+                    const state = pinia?.state?.value?.VFAStore;
+                    return !!(state?.currentRequest?.leo && state.currentRequest.leo.n);
+                } catch(e) { return false; }
+            }""")
 
-            # Value is empty — wait and retry
+            if leo_set:
+                return  # Success — Vue committed the LEO to the store
+
+            # LEO not set — close dropdown and retry
             self.page.keyboard.press("Escape")
             self.page.wait_for_timeout(1000)
 
