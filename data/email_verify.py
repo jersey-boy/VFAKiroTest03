@@ -16,10 +16,16 @@ import requests
 from dotenv import load_dotenv
 
 
+class QuotaExceededError(Exception):
+    """Raised when the Testmail.app free tier monthly limit is exceeded."""
+    pass
+
+
 class EmailVerifier:
     """Creates Testmail.app addresses and verifies email delivery."""
 
     API_URL = "https://api.testmail.app/api/json"
+    QuotaExceededError = QuotaExceededError
 
     def __init__(self, env_path: str = "databaseconnect.env") -> None:
         env_file = Path(env_path)
@@ -85,7 +91,23 @@ class EmailVerifier:
                     timeout=65,  # Slightly longer than Testmail's 60s redirect cycle
                     allow_redirects=True,
                 )
+
+                # Check for rate limit / quota exceeded (429 or 426)
+                if response.status_code == 429:
+                    raise QuotaExceededError(
+                        "Testmail.app monthly quota exceeded (429). "
+                        "Free tier allows 100 emails/month."
+                    )
+
                 data = response.json()
+
+                # Testmail returns result: "fail" with a message on quota issues
+                if data.get("result") == "fail":
+                    msg = data.get("message", "")
+                    if "limit" in msg.lower() or "quota" in msg.lower() or "exceeded" in msg.lower():
+                        raise QuotaExceededError(
+                            f"Testmail.app quota/limit reached: {msg}"
+                        )
 
                 if data.get("result") == "success" and data.get("count", 0) > 0:
                     return data["emails"][0]
