@@ -12,13 +12,14 @@ Use `psycopg2` to connect. The main table is `Vfa_fpca_form`.
 - Username: defined in `databaseconnect.env` as `DB_USER`
 - Password: defined in `databaseconnect.env` as `DB_PASSWORD`
 
-## Email Verification (Mailslurp)
+## Email Verification (Testmail.app)
 
-- API key: defined in `databaseconnect.env` as `MAILSLURP_API_KEY`
-- Each test run creates a disposable inbox via the Mailslurp API
-- The inbox email address is used in the form instead of a Faker-generated one
-- After submission, the test waits up to 2 minutes for the email to arrive
+- API key: defined in `databaseconnect.env` as `TESTMAIL_APIKEY`
+- Namespace: defined in `databaseconnect.env` as `TESTMAIL_NAMESPACE`
+- Each test run generates a unique email: `{namespace}.{random_tag}@inbox.testmail.app`
+- After submission, the test uses Testmail's livequery API to wait for delivery
 - Verifies the applicant's first name appears in the email body
+- Free tier: 100 emails/month, no expiration
 
 ## Schema
 

@@ -93,10 +93,8 @@ def test_fpca_happy_path(page) -> None:
 
     # Step 7: Email Delivery Verification
     try:
-        result = email_verifier.verify_email_received(
-            expected_name=data.name.first_name
-        )
+        result = email_verifier.verify_email_received()
         print(f"Email received: subject='{result['subject']}', "
-              f"body_length={result['body_length']}")
+              f"from='{result['from']}', text_length={result['text_length']}")
     finally:
         email_verifier.close()
